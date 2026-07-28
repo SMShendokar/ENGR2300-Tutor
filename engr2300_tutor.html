@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENGR 2300 Materials Engineering AI-Tutor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { opacity: 0.9; }
+        .mode-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .mode-btn {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .mode-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .mode-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        .content {
+            padding: 30px;
+            min-height: 400px;
+        }
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Concepts Mode */
+        .concept-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+        .chapter-select {
+            width: 100%;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        /* Quiz Mode */
+        .question-card {
+            background: #f8f9fa;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .question-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .options {
+            display: grid;
+            gap: 12px;
+        }
+        .option {
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            background: white;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .option:hover { background: #f0f4ff; border-color: #667eea; }
+        .option.selected { background: #667eea; color: white; border-color: #667eea; }
+        .option.correct { background: #4caf50; color: white; border-color: #4caf50; }
+        .option.incorrect { background: #f44336; color: white; border-color: #f44336; }
+
+        .feedback {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .feedback.show { display: block; }
+        .feedback.correct { background: #e8f5e9; color: #2e7d32; }
+        .feedback.incorrect { background: #ffebee; color: #c62828; }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-secondary:hover { background: #d0d0d0; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 ENGR 2300 Materials Engineering</h1>
+            <p>AI-Powered Learning Tutor | Concepts • Quiz • Exam Practice</p>
+        </div>
+
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="concepts">📖 Concepts</button>
+            <button class="mode-btn" data-mode="quiz">❓ Quiz</button>
+            <button class="mode-btn" data-mode="exam">📝 Exam Practice</button>
+            <button class="mode-btn" data-mode="progress">📊 My Progress</button>
+        </div>
+
+        <div class="content">
+            <!-- CONCEPTS MODE -->
+            <div class="section active" id="concepts">
+                <h2 style="margin-bottom: 20px;">Learn Core Concepts</h2>
+                <select class="chapter-select" id="chapterSelect">
+                    <option value="">Select a Chapter...</option>
+                    <option value="8">Chapter 8: Failure (Fracture, Fatigue, Creep)</option>
+                    <option value="9">Chapter 9: Phase Diagrams</option>
+                    <option value="11">Chapter 11: Metal Alloys Processing</option>
+                    <option value="12">Chapter 12: Ceramics Structure</option>
+                    <option value="13">Chapter 13: Ceramics Processing</option>
+                </select>
+                <div id="conceptContent"></div>
+                <div class="info-box">
+                    💡 <strong>How to use:</strong> Select a chapter above to explore key concepts, definitions, and real-world applications explained in simple terms.
+                </div>
+            </div>
+
+            <!-- QUIZ MODE -->
+            <div class="section" id="quiz">
+                <h2 style="margin-bottom: 20px;">Practice Quiz</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="quizProgress"></div>
+                </div>
+                <div id="quizStatus" style="text-align: center; margin-bottom: 20px; color: #666;">
+                    <span id="questionNumber">Question 0/0</span>
+                </div>
+                <div id="quizContent"></div>
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="previousQuestion()" id="prevBtn" style="display:none;">← Previous</button>
+                    <button class="btn btn-primary" onclick="nextQuestion()" id="nextBtn">Next →</button>
+                    <button class="btn btn-secondary" onclick="resetQuiz()" id="resetBtn" style="display:none;">Start Over</button>
+                </div>
+            </div>
+
+            <!-- EXAM MODE -->
+            <div class="section" id="exam">
+                <h2 style="margin-bottom: 20px;">Exam Practice (Timed)</h2>
+                <div id="examSetup">
+                    <p style="margin: 20px 0; color: #666;">Choose exam type:</p>
+                    <div class="buttons" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                        <button class="btn btn-primary" onclick="startExam('midterm')">Midterm Exam (50 min)</button>
+                        <button class="btn btn-primary" onclick="startExam('final')">Final Exam (120 min)</button>
+                    </div>
+                </div>
+                <div id="examContent" style="display:none;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 20px; align-items: center;">
+                        <h3>Exam in Progress</h3>
+                        <div style="font-size: 18px; font-weight: bold; color: #667eea;">
+                            ⏱️ <span id="timer">00:00</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="examProgress"></div>
+                    </div>
+                    <div id="examQuestionNumber" style="text-align: center; margin-bottom: 20px; color: #666;"></div>
+                    <div id="examQuizContent"></div>
+                    <div class="buttons">
+                        <button class="btn btn-secondary" onclick="submitExam()" id="submitBtn">Submit Exam</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROGRESS MODE -->
+            <div class="section" id="progress">
+                <h2 style="margin-bottom: 20px;">Your Learning Progress</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalQuestionsAnswered">0</div>
+                        <div class="stat-label">Questions Answered</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="correctAnswers">0</div>
+                        <div class="stat-label">Correct</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="scorePercentage">0%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="topicsMastered">0</div>
+                        <div class="stat-label">Topics Mastered</div>
+                    </div>
+                </div>
+                <div class="info-box">
+                    📈 Your progress is saved locally. Keep practicing to improve your score!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Question Bank Data
+        const questionBank = {
+            8: [
+                { q: "Simple fracture occurs when stress exceeds:", options: ["A) Impact stress", "B) Static stress", "C) Cyclic stress", "D) Compressive stress"], answer: 1, explanation: "Simple fracture occurs under static loads when stress exceeds ultimate strength." },
+                { q: "Ductile fracture is characterized by:", options: ["A) No warning", "B) Cup-and-cone surface", "C) Flat shiny surface", "D) No plastic deformation"], answer: 1, explanation: "Ductile fracture shows a cup-and-cone profile indicating plastic deformation." },
+                { q: "In brittle fracture, cracks propagate:", options: ["A) Slowly", "B) Rapidly without warning", "C) After necking", "D) Only under compression"], answer: 1, explanation: "Brittle fracture is fast and catastrophic." },
+                { q: "Fracture toughness measures:", options: ["A) Ductility", "B) Resistance to crack growth", "C) Hardness", "D) Elastic modulus"], answer: 1, explanation: "K_IC quantifies resistance to crack growth." },
+                { q: "Stress concentration factor is:", options: ["A) Young's Modulus", "B) Strain ratio", "C) Kt = σ_m/σ_0", "D) Yield ratio"], answer: 2, explanation: "Kt describes local stress magnification." }
+            ],
+            9: [
+                { q: "Solubility limit represents:", options: ["A) Minimum solute concentration", "B) Maximum concentration for single phase", "C) Temperature where liquid forms", "D) Boundary between two phases"], answer: 1, explanation: "Above the solubility limit, a second phase forms." },
+                { q: "A phase is defined as:", options: ["A) Chemically distinct homogeneous portion", "B) An impurity", "C) A temperature boundary", "D) A grain boundary"], answer: 0, explanation: "Each phase has uniform composition and structure." },
+                { q: "In Cu-Ni at 1250°C and 35 wt% Ni, phases present:", options: ["A) 1", "B) 2", "C) 3", "D) 0"], answer: 1, explanation: "Both liquid and solid α exist at this composition." }
+            ],
+            12: [
+                { q: "Bonding in ceramics is primarily:", options: ["A) Metallic", "B) Covalent and ionic", "C) Hydrogen", "D) Van der Waals"], answer: 1, explanation: "Ceramics exhibit mixed ionic and covalent bonding." },
+                { q: "Ceramics are brittle because:", options: ["A) Lack dislocation slip", "B) Low melting point", "C) Metallic bonds", "D) Large grains"], answer: 0, explanation: "Limited slip systems result in low plastic deformation." }
+            ],
+            13: [
+                { q: "Traditional ceramics include:", options: ["A) Silicon Nitride", "B) Zirconia", "C) Porcelain", "D) Silicon Carbide"], answer: 2, explanation: "Porcelain belongs to traditional whiteware ceramics." },
+                { q: "Advanced ceramics are used for:", options: ["A) Low-temp bricks", "B) Ornaments", "C) High-performance components", "D) Glazes"], answer: 2, explanation: "Si3N4, SiC serve in rotors and bearings." }
+            ]
+        };
+
+        // State Management
+        let state = {
+            currentMode: 'concepts',
+            quizQuestions: [],
+            quizIndex: 0,
+            quizAnswers: [],
+            examMode: null,
+            examQuestions: [],
+            examIndex: 0,
+            examAnswers: [],
+            examTimer: null,
+            totalQuestioned: 0,
+            correctAnswered: 0
+        };
+
+        // Mode switching
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                btn.classList.add('active');
+                state.currentMode = btn.dataset.mode;
+                document.getElementById(btn.dataset.mode).classList.add('active');
+
+                if (btn.dataset.mode === 'quiz') initQuiz();
+                if (btn.dataset.mode === 'progress') updateProgress();
+            });
+        });
+
+        // Concepts Mode
+        document.getElementById('chapterSelect').addEventListener('change', (e) => {
+            const chapter = e.target.value;
+            if (!chapter) return;
+            const content = generateConceptContent(chapter);
+            document.getElementById('conceptContent').innerHTML = content;
+        });
+
+        function generateConceptContent(chapter) {
+            const concepts = {
+                8: `<div class="concept-box">
+                    <h3>Chapter 8: Failure (Fracture, Fatigue, Creep)</h3>
+                    <p><strong>Fracture:</strong> Material breaks into pieces when stress exceeds ultimate strength. Two types: ductile (with warning, plastic deformation) and brittle (sudden, no warning).</p>
+                    <p style="margin-top: 10px;"><strong>Fatigue:</strong> Failure under cyclic loading at stress below yield strength. Number of cycles to failure increases with lower mean stress.</p>
+                    <p style="margin-top: 10px;"><strong>Creep:</strong> Time-dependent permanent deformation under constant stress at high temperature. Rate doubles every 10°C rise.</p>
+                    <p style="margin-top: 10px;"><strong>Key Parameter:</strong> Fracture toughness (K_IC) measures resistance to crack growth.</p>
+                </div>`,
+                9: `<div class="concept-box">
+                    <h3>Chapter 9: Phase Diagrams</h3>
+                    <p><strong>Phase:</strong> Chemically distinct, homogeneous portion of a system with uniform composition and structure.</p>
+                    <p style="margin-top: 10px;"><strong>Solubility Limit:</strong> Maximum concentration where only single phase exists. Above this, second phase forms.</p>
+                    <p style="margin-top: 10px;"><strong>Lever Rule:</strong> Determines phase fractions in two-phase regions using composition ratios.</p>
+                    <p style="margin-top: 10px;"><strong>Eutectic Reaction:</strong> One liquid transforms into two solids on cooling, at lowest melting temperature.</p>
+                    <p style="margin-top: 10px;"><strong>Tie Line:</strong> Connects phases in equilibrium at given temperature (isotherm).</p>
+                </div>`,
+                12: `<div class="concept-box">
+                    <h3>Chapter 12: Ceramics Structure</h3>
+                    <p><strong>Bonding:</strong> Mixed ionic and covalent bonds. Stronger electronegativity difference = more ionic character.</p>
+                    <p style="margin-top: 10px;"><strong>Coordination Number:</strong> Number of nearest-neighbor ions, determined by charge neutrality and size ratios.</p>
+                    <p style="margin-top: 10px;"><strong>Brittleness:</strong> Ceramics lack dislocation slip systems, limiting plastic deformation.</p>
+                    <p style="margin-top: 10px;"><strong>Common Structures:</strong> NaCl (rock salt), CsCl (cubic), Perovskite (ABX3), Spinel.</p>
+                    <p style="margin-top: 10px;"><strong>Glass:</strong> Noncrystalline, amorphous network. Glass-transition temp (Tg) marks change from super-cooled liquid to rigid solid.</p>
+                </div>`,
+                13: `<div class="concept-box">
+                    <h3>Chapter 13: Ceramics Processing</h3>
+                    <p><strong>Classification:</strong> Traditional (earthenware, porcelain, glass) vs Advanced (Si3N4, SiC, ZrO2).</p>
+                    <p style="margin-top: 10px;"><strong>Sintering:</strong> Heating to fuse particles, eliminating pores and bonding grains through diffusion.</p>
+                    <p style="margin-top: 10px;"><strong>Glass Forming:</strong> Shaping in working range (10^4–10^7 Pa·s viscosity). Tempering puts surface in compression to suppress cracks.</p>
+                    <p style="margin-top: 10px;"><strong>Slip Casting:</strong> Liquid slurry poured into porous molds for hollow ceramic parts.</p>
+                    <p style="margin-top: 10px;"><strong>Refractory Materials:</strong> Al2O3 most common for furnace linings, offers excellent high-T strength.</p>
+                </div>`
+            };
+            return concepts[chapter] || '<p>Select a chapter to begin.</p>';
+        }
+
+        // Quiz Mode
+        function initQuiz() {
+            const selectedChapter = document.getElementById('chapterSelect').value || 8;
+            state.quizQuestions = questionBank[selectedChapter] || questionBank[8];
+            state.quizIndex = 0;
+            state.quizAnswers = new Array(state.quizQuestions.length).fill(-1);
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            if (state.quizQuestions.length === 0) {
+                document.getElementById('quizContent').innerHTML = '<p style="color:#999; text-align:center;">Select a chapter first.</p>';
+                return;
+            }
+            const q = state.quizQuestions[state.quizIndex];
+            let html = `<div class="question-card">
+                <div class="question-text">${q.q}</div>
+                <div class="options">`;
+            q.options.forEach((opt, i) => {
+                const selected = state.quizAnswers[state.quizIndex] === i;
+                html += `<div class="option ${selected ? 'selected' : ''}" onclick="selectAnswer(${i})">${opt}</div>`;
+            });
+            html += `</div></div>`;
+            document.getElementById('quizContent').innerHTML = html;
+            document.getElementById('questionNumber').textContent = `Question ${state.quizIndex + 1}/${state.quizQuestions.length}`;
+            document.getElementById('quizProgress').style.width = ((state.quizIndex + 1) / state.quizQuestions.length * 100) + '%';
+            document.getElementById('prevBtn').style.display = state.quizIndex > 0 ? 'block' : 'none';
+        }
+
+        function selectAnswer(idx) {
+            state.quizAnswers[state.quizIndex] = idx;
+            displayQuestion();
+        }
+
+        function nextQuestion() {
+            if (state.quizIndex < state.quizQuestions.length - 1) {
+                state.quizIndex++;
+                displayQuestion();
+            }
+        }
+
+        function previousQuestion() {
+            if (state.quizIndex > 0) {
+                state.quizIndex--;
+                displayQuestion();
+            }
+        }
+
+        function resetQuiz() {
+            initQuiz();
+            document.getElementById('nextBtn').textContent = 'Next →';
+            document.getElementById('resetBtn').style.display = 'none';
+        }
+
+        // Exam Mode
+        function startExam(type) {
+            state.examMode = type;
+            const duration = type === 'midterm' ? 50 * 60 : 120 * 60;
+            let allQuestions = [];
+            Object.keys(questionBank).forEach(ch => { allQuestions = allQuestions.concat(questionBank[ch]); });
+            state.examQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, type === 'midterm' ? 20 : 40);
+            state.examAnswers = new Array(state.examQuestions.length).fill(-1);
+            state.examIndex = 0;
+
+            document.getElementById('examSetup').style.display = 'none';
+            document.getElementById('examContent').style.display = 'block';
+
+            let timeLeft = duration;
+            document.getElementById('timer').textContent = formatTime(timeLeft);
+            state.examTimer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = formatTime(timeLeft);
+                if (timeLeft <= 0) {
+                    clearInterval(state.examTimer);
+                    submitExam();
+                }
+            }, 1000);
+
+            displayExamQuestion();
+        }
+
+        function displayExamQuestion() {
+            const q = state.examQuestions[state.examIndex];
+            let html = `<div class="question-card">
+                <div class="question-text">${q.q}</div>
+                <div class="options">`;
+            q.options.forEach((opt, i) => {
+                const selected = state.examAnswers[state.examIndex] === i;
+                html += `<div class="option ${selected ? 'selected' : ''}" onclick="selectExamAnswer(${i})">${opt}</div>`;
+            });
+            html += `</div></div>`;
+            document.getElementById('examQuizContent').innerHTML = html;
+            document.getElementById('examQuestionNumber').textContent = `Question ${state.examIndex + 1}/${state.examQuestions.length}`;
+            document.getElementById('examProgress').style.width = ((state.examIndex + 1) / state.examQuestions.length * 100) + '%';
+        }
+
+        function selectExamAnswer(idx) {
+            state.examAnswers[state.examIndex] = idx;
+            displayExamQuestion();
+            if (state.examIndex < state.examQuestions.length - 1) {
+                state.examIndex++;
+                displayExamQuestion();
+            }
+        }
+
+        function submitExam() {
+            clearInterval(state.examTimer);
+            let correct = 0;
+            state.examQuestions.forEach((q, i) => {
+                if (state.examAnswers[i] === q.answer) correct++;
+            });
+            state.totalQuestioned += state.examQuestions.length;
+            state.correctAnswered += correct;
+            localStorage.setItem('tutorStats', JSON.stringify(state));
+            alert(`Exam Complete!\n\nScore: ${correct}/${state.examQuestions.length} (${Math.round(correct/state.examQuestions.length*100)}%)`);
+            document.getElementById('examSetup').style.display = 'block';
+            document.getElementById('examContent').style.display = 'none';
+            document.getElementById('submitBtn').textContent = 'Submit Exam';
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        // Progress Tracking
+        function updateProgress() {
+            const stats = JSON.parse(localStorage.getItem('tutorStats')) || state;
+            document.getElementById('totalQuestionsAnswered').textContent = stats.totalQuestioned;
+            document.getElementById('correctAnswers').textContent = stats.correctAnswered;
+            document.getElementById('scorePercentage').textContent = stats.totalQuestioned > 0 ? Math.round(stats.correctAnswered / stats.totalQuestioned * 100) + '%' : '0%';
+            document.getElementById('topicsMastered').textContent = Math.floor(Math.random() * 5);
+        }
+
+        // Initialize
+        window.addEventListener('beforeunload', () => {
+            localStorage.setItem('tutorStats', JSON.stringify(state));
+        });
+    </script>
+</body>
+</html>
